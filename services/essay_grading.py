@@ -1,0 +1,28 @@
+from core.openai_client import OpenAIClient
+from repositories.essay_grading import EssayGradingRepository
+
+class EssayGradingService:
+    def __init__(self):
+        self.client = OpenAIClient()
+        self.repo = EssayGradingRepository()
+        
+    def grade_essay(self, essay_id, essay: str, rubric_criteria: str):
+        grading_result = self.client.grade_essay(essay, rubric_criteria)
+        parsed_grading_result = self.client.parse_llm_response_to_json(grading_result)
+        print(f'parsed_grading_result: {parsed_grading_result}')
+        
+        evaluations = parsed_grading_result.get('evaluations')
+        total_score = parsed_grading_result.get('total_score')
+        max_total_score = parsed_grading_result.get('max_total_score')
+        overall_feedback = parsed_grading_result.get('overall_feedback')
+        
+        print(f'- evaluations: {evaluations}')
+        print(f'- total_score: {total_score}')
+        print(f'- max_total_score: {max_total_score}')
+        print(f'- overall_feedback: {overall_feedback}')
+        
+        self.repo.save_evaluations(essay_id, evaluations)
+        self.repo.save_summary(essay_id, total_score, max_total_score, overall_feedback)
+        self.repo.update_essay_raw_sql(essay_id, 'status', 'graded')
+        
+       
