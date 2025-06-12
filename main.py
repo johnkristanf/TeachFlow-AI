@@ -1,23 +1,30 @@
 import asyncio
 import json
+import traceback
 from aio_pika import connect_robust, IncomingMessage
 from utils.essay import clean_essay_text
 from services.essay_grading import EssayGradingService
+from retry import retry_message_queue
+from exceptions import RETRYABLE_EXCEPTIONS
 
 RABBITMQ_URL = "amqp://guest:guest@localhost"  # match Next.js env
 QUEUE_NAME = "grading_events"  # match queue passed in publishToQueue
+MAX_RETRIES = 3
 
 essay_service = EssayGradingService()
 
 async def process_message(message: IncomingMessage):
-    async with message.process():
+    async with message.process(ignore_processed=True):
         try:
             payload = json.loads(message.body.decode())
-            print("✅ Received message:", payload)
+            retries = message.headers.get("x-retry", 0)
+            print(f'retries: {retries}')
+            
+            event = payload.get('event')
+            essay_id = payload.get("essay_id")
 
             # TODO: Process the payload here (e.g., grade essay, save results)
-            if payload.get('event') == 'ESSAY_SUBMITTED':
-                essay_id = payload.get("essay_id")
+            if event == 'ESSAY_SUBMITTED':
                 essay_text = payload.get("essay_text")
                 rubric_criteria = payload.get("rubric_criteria")
                 
@@ -28,8 +35,21 @@ async def process_message(message: IncomingMessage):
                 print(f'clean_essay: {clean_essay}')
                 print(f'rubric_criteria: {rubric_criteria}')
             
+        except RETRYABLE_EXCEPTIONS as e:
+            print("🔁 Retryable error occurred:", e)
+            if retries < MAX_RETRIES:
+                await retry_message_queue(message, retries)
+            else:
+                print("💥 Max retries exceeded. Dropping message.")
+                essay_service.set_failed_grading(essay_id)
+                await message.reject(requeue=False)
+
         except Exception as e:
-            print("❌ Error processing message:", e)
+            print("❌ Non-retryable error:", e)
+            traceback.print_exc()
+            essay_service.set_failed_grading(essay_id)
+            await message.reject(requeue=False)
+
             
 
 async def main():
