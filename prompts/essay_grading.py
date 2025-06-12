@@ -23,10 +23,11 @@ class LLMPrompts:
                             - The assigned `score`.
                             - The `max_score` possible for that criterion (use the highest score from that criterion’s levels).
                             
-                            - A short but clear `reason` explaining why the score was assigned.
+                            - A clear `reason` explaining why the score was assigned.
                                 **Be specific. Quote or reference exact words, phrases, or sentences from the essay that influenced your decision.**
                             
                             - A helpful `suggestion` to improve that specific aspect.
+                            
                         4. After evaluating all criteria, compute the **overall total score** out of the **maximum possible score**, like `12 / 20`.
                         5. Provide an `overall_feedback` summary that reflects the essay's strengths and areas for improvement across all criteria.
                     """
