@@ -16,7 +16,7 @@ class OpenAIClient:
         self.prompts = LLMPrompts()
         
         
-    def grade_essay(self, essay: str, rubric_criteria: str, max_tokens: int = 500) -> str:
+    def grade_essay(self, essay: str, rubric_criteria: str, max_tokens: int = 300) -> str:
         
         try:
             response = self.client.chat.completions.create(
