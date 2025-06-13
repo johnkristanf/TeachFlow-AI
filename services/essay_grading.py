@@ -28,7 +28,13 @@ class EssayGradingService:
         self.repo.save_summary(essay_id, total_score, max_total_score, overall_feedback)
         self.repo.update_essay_raw_sql(essay_id, 'status', 'graded')
         
-    def set_failed_grading(self, essay_id):
+    def set_failed_grading(self, essay_id, failure_type: str, error_message: str, error_details: dict = None):
         self.repo.update_essay_raw_sql(essay_id, 'status', 'failed')
+        self.repo.insert_grading_log(
+            essay_id=essay_id,
+            failure_type=failure_type,
+            error_message=error_message,
+            error_details=error_details,
+        )
         
        
