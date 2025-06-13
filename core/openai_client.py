@@ -16,7 +16,7 @@ class OpenAIClient:
         self.prompts = LLMPrompts()
         
         
-    def grade_essay(self, essay: str, rubric_criteria: str, max_tokens: int = 300) -> str:
+    def grade_essay(self, essay: str, rubric_criteria: str, max_tokens: int = 500) -> str:
         
         try:
             response = self.client.chat.completions.create(
@@ -28,9 +28,15 @@ class OpenAIClient:
                 
                 max_tokens=max_tokens,
                 temperature=0.2,
+                response_format={"type": "json_object"},
             )
             
-            return response.choices[0].message.content
+            if response.choices and response.choices[0].message and response.choices[0].message.content:
+                return response.choices[0].message.content
+            else:
+                # Handle cases where LLM might return no content
+                raise MalformedLLMResponseError("LLM returned empty or no content.")
+
         
         except RateLimitError as e:
             print("🔁 Rate limit exceeded. Retry later.")
