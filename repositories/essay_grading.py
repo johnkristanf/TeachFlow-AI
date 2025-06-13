@@ -1,5 +1,5 @@
 import uuid
-
+import json
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from database.connect import SessionLocal
@@ -58,4 +58,45 @@ class EssayGradingRepository:
             self.db.commit()
         except SQLAlchemyError as e:
             self.db.rollback()
+            raise
+        
+    def insert_grading_log(self, essay_id: str, failure_type: str, error_message: str, error_details: dict = None):
+        """
+        Inserts a new log entry into the essay_grading_logs table using raw SQL.
+        """
+        try:
+            # Prepare the JSONB data. PostgreSQL expects JSONB as a string.
+            # json.dumps converts Python dict to JSON string.
+            error_details_json = json.dumps(error_details) if error_details else None
+
+            sql = text(f"""
+                INSERT INTO essay_grading_logs (
+                    essay_id,
+                    failure_type,
+                    error_message,
+                    error_details,
+                    logged_at
+                ) VALUES (
+                    :essay_id,
+                    :failure_type,
+                    :error_message,
+                    :error_details,
+                    NOW() -- Use NOW() for the default timestamp as defined in Drizzle schema
+                )
+            """)
+
+            # Execute the SQL with parameters
+            self.db.execute(sql, {
+                "essay_id": essay_id,
+                "failure_type": failure_type,
+                "error_message": error_message,
+                "error_details": error_details_json, # Pass the JSON string
+            })
+            
+            self.db.commit() # Commit the transaction after successful insert
+            print(f"Logged grading failure for essay {essay_id} ({failure_type})")
+            
+        except SQLAlchemyError as e:
+            self.db.rollback() 
+            print(f"Error inserting grading log for essay {essay_id}: {e}")
             raise
