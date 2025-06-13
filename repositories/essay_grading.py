@@ -11,12 +11,23 @@ class EssayGradingRepository:
     def __init__(self):
         self.db = SessionLocal()
         
-    def save_evaluations(self, essay_id: str, evaluations: list[dict]):
+    def __del__(self):
+        # Basic cleanup, but consider explicit session management in your app's lifecycle
+        if self.db:
+            self.db.close()
         
+    def save_evaluations(self, essay_id: str, evaluations: list[dict]):
         try:
+            # 1. Delete existing evaluations for this essay_id
+            print(f"Deleting existing evaluations for essay_id: {essay_id}")
+            self.db.query(EssayEvaluations).filter(EssayEvaluations.essay_id == essay_id).delete()
+            self.db.flush() # Flush to ensure deletes are processed before inserts
+
+            # 2. Insert new evaluations
+            print(f"Inserting new evaluations for essay_id: {essay_id}")
             for eval_data in evaluations:
                 evaluation = EssayEvaluations(
-                    id=str(uuid.uuid4()),
+                    id=str(uuid.uuid4()), # Generate new UUID for each evaluation
                     essay_id=essay_id,
                     criterion=eval_data.get("criterion"),
                     matched_label=eval_data.get("matched_label"),
@@ -24,27 +35,41 @@ class EssayGradingRepository:
                     max_score=eval_data.get("max_score"),
                     reason=eval_data.get("reason"),
                     suggestion=eval_data.get("suggestion"),
-                    created_at=datetime.now()
+                    created_at=datetime.now() # Use current time for new evaluations
                 )
                 self.db.add(evaluation)
             self.db.commit()
-            
+            print(f"Successfully saved new evaluations for essay {essay_id}.")
+
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise
+            print(f"SQLAlchemyError in save_evaluations for essay {essay_id}: {e}")
+            raise # Re-raise the exception after rollback
         
     def save_summary(self, essay_id: str, total_score: int, max_total_score: int, overall_feedback: str):
         try:
-            summary = EssaySummaries(
-                id=str(uuid.uuid4()),
-                essay_id=essay_id,
-                total_score=total_score,
-                max_total_score=max_total_score,
-                overall_feedback=overall_feedback
-            )
-            
-            self.db.add(summary)
+            existing_summary = self.db.query(EssaySummaries).filter(EssaySummaries.essay_id == essay_id).first()
+
+
+            if existing_summary:
+                # If summary exists, update it
+                print(f"Updating existing summary for essay_id: {essay_id}")
+                existing_summary.total_score = total_score
+                existing_summary.max_total_score = max_total_score
+                existing_summary.overall_feedback = overall_feedback
+            else:
+                print(f"Creating new summary for essay_id: {essay_id}")
+                summary = EssaySummaries(
+                    id=str(uuid.uuid4()),
+                    essay_id=essay_id,
+                    total_score=total_score,
+                    max_total_score=max_total_score,
+                    overall_feedback=overall_feedback
+                )
+                self.db.add(summary)
+
             self.db.commit()
+            print(f"Successfully saved/updated summary for essay {essay_id}.")
         
         except SQLAlchemyError as e:
             self.db.rollback()
