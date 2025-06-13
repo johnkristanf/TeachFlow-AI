@@ -1,7 +1,6 @@
 
 from openai import APIConnectionError, Timeout, RateLimitError
 import asyncio
-import socket
 from aio_pika.exceptions import AMQPConnectionError
 
 
@@ -16,6 +15,5 @@ RETRYABLE_EXCEPTIONS = (
     APIConnectionError,
     RateLimitError,
     AMQPConnectionError,
-    socket.error,
     asyncio.TimeoutError,
 )
