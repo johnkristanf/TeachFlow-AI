@@ -5,7 +5,7 @@ from aio_pika import connect_robust, IncomingMessage
 from utils.essay import clean_essay_text
 from services.essay_grading import EssayGradingService
 from retry import retry_message_queue
-from exceptions import RETRYABLE_EXCEPTIONS, MalformedLLMResponseError
+from exceptions import RETRYABLE_EXCEPTIONS
 
 RABBITMQ_URL = "amqp://guest:guest@localhost"  # match Next.js env
 QUEUE_NAME = "grading_events"  # match queue passed in publishToQueue
@@ -67,16 +67,6 @@ async def process_message(message: IncomingMessage):
                 print(f"❌ Caught a non-retryable error.")
                 failure_type = 'PERMANENT_ERROR'
                 error_message = f"Non-retryable error during grading: {e}"
-
-                # You can add more specific failure types based on the exception type here if needed
-                if isinstance(e, MalformedLLMResponseError):
-                    failure_type = 'MALFORMED_LLM_RESPONSE'
-                    error_message = f"LLM returned malformed data: {e}"
-                    error_details["raw_llm_response"] = getattr(e, 'raw_response', 'N/A')
-                elif isinstance(e, ValueError) and "Unhandled event type" in str(e):
-                    failure_type = 'UNHANDLED_EVENT'
-                elif isinstance(e, ValueError) and "Missing" in str(e) and "payload" in str(e):
-                    failure_type = 'INVALID_MESSAGE_PAYLOAD'
 
                 essay_service.set_failed_grading(
                     essay_id,
