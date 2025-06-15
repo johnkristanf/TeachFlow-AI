@@ -6,8 +6,8 @@ class EssayGradingService:
         self.client = OpenAIClient()
         self.repo = EssayGradingRepository()
         
-    def grade_essay(self, essay_id, essay: str, rubric_criteria: str):
-        raw_grading_result = self.client.grade_essay(essay, rubric_criteria)
+    def grade_essay(self, essay_id, essay: str, rubric_category, grade_level, grade_intensity, rubric_criteria: str):
+        raw_grading_result = self.client.grade_essay(essay, rubric_category, grade_level, grade_intensity, rubric_criteria)
         print(f'raw_grading_result: {raw_grading_result}')
         
         parsed_grading_result = self.client.parse_llm_response_to_json(raw_grading_result)
