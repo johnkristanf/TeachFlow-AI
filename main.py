@@ -1,116 +1,53 @@
 import asyncio
-import json
-import traceback
-from aio_pika import connect_robust, IncomingMessage
-from utils.essay import clean_essay_text
-from services.essay_grading import EssayGradingService
-from retry import retry_message_queue
-from exceptions import RETRYABLE_EXCEPTIONS
 
-RABBITMQ_URL = "amqp://guest:guest@localhost"  # match Next.js env
-QUEUE_NAME = "grading_events"  # match queue passed in publishToQueue
-MAX_RETRIES = 3
+import io
+import cv2
+import uvicorn
+import numpy as np
 
-essay_service = EssayGradingService()
+from contextlib import asynccontextmanager
+from consumer import main as start_rabbitmq_consumer  
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import StreamingResponse
 
-async def process_message(message: IncomingMessage):
-    async with message.process(ignore_processed=True):
-        try:
-            payload = json.loads(message.body.decode())
-            retries = message.headers.get("x-retry", 0)
-            print(f'retries: {retries}')
-            
-            event = payload.get('event')
-            essay_id = payload.get("essay_id")
 
-            # TODO: Process the payload here (e.g., grade essay, save results)
-            if event == 'ESSAY_SUBMITTED':
-                essay_text = payload.get("essay_text")
-                rubric_criteria = payload.get("rubric_criteria")
-                
-                clean_essay = clean_essay_text(essay_text)
-                essay_service.grade_essay(essay_id, essay_text, rubric_criteria)
-                
-                print(f'essay_id: {essay_id}')
-                print(f'clean_essay: {clean_essay}')
-                print(f'rubric_criteria: {rubric_criteria}')
-            
-        except Exception as e: # Catch all exceptions here
-            print(f"Error processing message for essay {essay_id}: {e}")
-            traceback.print_exc() # Always print full traceback for debugging
-
-            # Prepare common error details
-            error_details = {
-                "original_exception_type": type(e).__name__,
-                "stack_trace": traceback.format_exc(),
-            }
-            
-            is_retryable = isinstance(e, RETRYABLE_EXCEPTIONS)
-
-            if is_retryable:
-                print(f"🔁 Caught a retryable error.")
-                if retries < MAX_RETRIES:
-                    print(f"Attempting retry {retries + 1}/{MAX_RETRIES} for essay {essay_id}.")
-                    await retry_message_queue(message, retries)
-                else:
-                    print(f"💥 Max retries ({MAX_RETRIES}) exhausted for essay {essay_id}. Logging as failed.")
-                    failure_type = 'RETRY_EXHAUSTED'
-                    error_message = f"Max retries ({MAX_RETRIES}) exhausted. Error: {e}"
-                    essay_service.set_failed_grading(
-                        essay_id,
-                        failure_type,
-                        error_message,
-                        error_details=error_details,
-                    )
-                    await message.reject(requeue=False) # Send to DLQ
-            else:
-                print(f"❌ Caught a non-retryable error.")
-                failure_type = 'PERMANENT_ERROR'
-                error_message = f"Non-retryable error during grading: {e}"
-
-                essay_service.set_failed_grading(
-                    essay_id,
-                    failure_type,
-                    error_message,
-                    error_details=error_details,
-                )
-                
-                await message.reject(requeue=False) # Send to DLQ
-
-            
-
-async def main():
-    connection = await connect_robust(RABBITMQ_URL)
-    channel = await connection.channel()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(start_rabbitmq_consumer())
+    yield
     
-    # 1. Declare the Dead Letter Exchange (DLX)
-    dlx_name = 'grading_dlx'
-    await channel.declare_exchange(dlx_name, 'topic', durable=True)
-   
-   
-   # 2. Declare the Dead Letter Queue (DLQ)
-    dlq_name = 'grading_dlq'
-    dlq = await channel.declare_queue(dlq_name, durable=True)
+
+app = FastAPI(lifespan=lifespan)
+
+@app.post("/enhance")
+async def enhance_image(file: UploadFile = File(...)):
+    content = await file.read()
+    npimg = np.frombuffer(content, np.uint8)
+    image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)   
+     
+    # Denoise while preserving edges
+    denoised = cv2.fastNlMeansDenoising(gray, h=15)
+    # Histogram equalization for contrast
+    equalized = cv2.equalizeHist(denoised)
     
-    # 3. Bind the DLQ to the DLX
-    await dlq.bind(dlx_name, 'failed_grading')
+    upscaled = cv2.resize(equalized, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
-    # Declare the main queue, linking it to the DLX
-    args = {"x-dead-letter-exchange": dlx_name, "x-dead-letter-routing-key": "failed_grading"}
-    queue = await channel.declare_queue(QUEUE_NAME, durable=True, arguments=args)
+    thresh = cv2.adaptiveThreshold(
+        upscaled, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        15,
+        8
+    )
 
-    # Start consuming messages
-    await queue.consume(process_message)
-    print(f"🚀 Waiting for messages in queue: {QUEUE_NAME}")
+    # Optional: Slight Gaussian blur to remove jagged noise
+    blurred = cv2.GaussianBlur(thresh, (1, 1), 0)
 
-    return connection
-
-# Keep the consumer running
+    _, encoded = cv2.imencode('.png', blurred)
+    return StreamingResponse(io.BytesIO(encoded.tobytes()), media_type="image/png")
+        
+            
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    connection = loop.run_until_complete(main())
-
-    try:
-        loop.run_forever()
-    finally:
-        loop.run_until_complete(connection.close())
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
