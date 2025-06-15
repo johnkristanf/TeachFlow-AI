@@ -9,7 +9,7 @@ class EssayEvaluations(Base):
     __tablename__ = "essay_evaluations"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
-    essay_id = Column(String, unique=True)
+    essay_id = Column(Integer, unique=True)
 
     criterion = Column(String, nullable=True)
     matched_label = Column(String, nullable=True)
