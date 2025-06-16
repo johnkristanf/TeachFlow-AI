@@ -36,7 +36,6 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
-            # add more environment variables as needed
             EOF
 
       - name: Build & Push Docker Image using Docker Compose
@@ -61,9 +60,6 @@ jobs:
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no docker-compose.yml \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/docker-compose.yml
-
-          scp -i private_key.pem -o StrictHostKeyChecking=no .env \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/.env
 
 
       - name: Deploy via SSH
