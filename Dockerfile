@@ -17,6 +17,7 @@ COPY . .
 # Expose the app port
 EXPOSE 8000
 
-# Command to run alembic migrations and then start the FastAPI application
-# We'll use an entrypoint script for better control.
-CMD ["/bin/bash", "entrypoint.sh"]
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
