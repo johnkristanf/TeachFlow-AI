@@ -1,5 +1,6 @@
 import json
 import traceback
+import os
 
 from aio_pika import connect_robust
 from aio_pika import connect_robust, IncomingMessage
@@ -8,10 +9,9 @@ from services.essay_grading import EssayGradingService
 from retry import retry_message_queue
 from exceptions import RETRYABLE_EXCEPTIONS
 
-RABBITMQ_URL = "amqp://guest:guest@localhost"  # match Next.js env
-QUEUE_NAME = "grading_events"  # match queue passed in publishToQueue
+RABBITMQ_URL = os.getenv("RABBITMQ_URL") 
+QUEUE_NAME = "grading_events"  
 MAX_RETRIES = 3
-
 
 
 essay_service = EssayGradingService()
@@ -85,7 +85,7 @@ async def process_message(message: IncomingMessage):
                 
                 await message.reject(requeue=False) # Send to DLQ
 
-async def main():
+async def start_rabbitmq_consumer():
     connection = await connect_robust(RABBITMQ_URL)
     channel = await connection.channel()
     
