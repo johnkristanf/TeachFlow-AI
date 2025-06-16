@@ -64,6 +64,9 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=no Dockerfile \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/Dockerfile
 
+          scp -i private_key.pem -o StrictHostKeyChecking=no requirements.txt \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/requirements.txt
+
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
