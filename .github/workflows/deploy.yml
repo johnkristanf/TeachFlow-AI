@@ -46,11 +46,15 @@ jobs:
 
 
       - name: Make Server Directory
-        run: |
-            ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e  # Exit if any command fails
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
             mkdir -p /home/${{ secrets.EC2_USER }}/server/
-            EOF 
+
 
             
       - name: Upload docker-compose.yml and .env
