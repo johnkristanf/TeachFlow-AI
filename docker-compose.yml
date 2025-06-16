@@ -10,9 +10,9 @@ services:
     ports:
       - "8000:8000"
     environment: 
-      - RABBITMQ_URL=${RABBITMQ_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://postgres.opmshbvejnunxhahncig:teachflow-root-db@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
     depends_on:
       - rabbitmq
 
