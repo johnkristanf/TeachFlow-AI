@@ -43,10 +43,16 @@ jobs:
             mkdir -p /home/${{ secrets.EC2_USER }}/server/
             EOF
 
-      - name: Upload docker-compose.yml
+      - name: Upload docker-compose.yml and .env
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no docker-compose.yml \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/docker-compose.yml
+
+          scp -i private_key.pem -o StrictHostKeyChecking=no .env \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/.env
+
+          scp -i private_key.pem -o StrictHostKeyChecking=no Dockerfile \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/Dockerfile
 
 
       - name: Deploy via SSH
