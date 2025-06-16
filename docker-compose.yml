@@ -2,6 +2,9 @@ version: "3.8"
 services:
   app:
     image: johnkristan01/teachflow:latest
+    env_file:
+      - .env
+      
     container_name: teachflow_AI
     ports:
       - "8000:8000"
