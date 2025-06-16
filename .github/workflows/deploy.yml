@@ -30,6 +30,15 @@ jobs:
         run: |
           ls -lah 
 
+      - name: Generate .env file from secrets
+        run: |
+            cat <<EOF > .env
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+            # add more environment variables as needed
+            EOF
+
       - name: Build & Push Docker Image using Docker Compose
         run: |
             docker-compose build 
@@ -43,6 +52,7 @@ jobs:
             mkdir -p /home/${{ secrets.EC2_USER }}/server/
             EOF
 
+            
       - name: Upload docker-compose.yml and .env
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no docker-compose.yml \
