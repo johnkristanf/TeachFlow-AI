@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    image: johnkristan01/teachflow:latest
+    container_name: teachflow_AI
+    ports:
+      - "8000:8000"
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - rabbitmq
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+
