@@ -17,7 +17,8 @@ COPY . .
 # Expose the app port
 EXPOSE 8000
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Ensure entrypoint.sh is executable
+RUN chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Set entrypoint from /app
+ENTRYPOINT ["./entrypoint.sh"]
