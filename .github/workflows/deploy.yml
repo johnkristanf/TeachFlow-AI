@@ -1,0 +1,62 @@
+name: Deploy Teachflow AI to Amazon EC2 (Amazon Linux 2)
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+          
+          
+      - name: Create SSH Key File
+        run: |
+          echo "${{ secrets.EC2_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Debug - List Files in Server Directory
+        run: |
+          ls -lah 
+
+      - name: Build & Push Docker Image using Docker Compose
+        run: |
+            docker-compose build 
+            docker-compose push 
+
+
+      - name: Make Server Directory
+        run: |
+            ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e  # Exit if any command fails
+            mkdir -p /home/${{ secrets.EC2_USER }}/server/
+            EOF
+
+      - name: Upload docker-compose.yml
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no docker-compose.yml \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/server/docker-compose.yml
+
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USER }}
+            key: ${{ secrets.EC2_KEY }}
+            script: |
+                cd server
+                docker-compose down || true
+                docker-compose pull
+                docker-compose up -d --remove-orphans
