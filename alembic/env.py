@@ -5,6 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from database.connect import Base
+import os
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,6 +15,12 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+    
+    
+# Set the SQLAlchemy URL from environment variable
+if config.get_main_option("sqlalchemy.url").startswith("env:"):
+    key = config.get_main_option("sqlalchemy.url").split("env:")[1]
+    config.set_main_option("sqlalchemy.url", os.environ[key])
 
 # add your model's MetaData object here
 # for 'autogenerate' support
