@@ -13,10 +13,12 @@ jobs:
 
       - name: Install Docker Compose
         run: |
-            DOCKER_COMPOSE_VERSION=2.37.1
-            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-            docker-compose --version
+          curl -fsSL https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-linux-x86_64 -o docker-compose
+          chmod +x docker-compose
+          sudo mv docker-compose /usr/local/bin/docker-compose
+          docker-compose --version
+
+
 
           
       - name: Create SSH Key File 
