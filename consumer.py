@@ -96,6 +96,7 @@ async def start_rabbitmq_consumer():
     for attempt in range(5):
         try:
             connection = await connect_robust(RABBITMQ_URL)
+            print("✅ Successfully connected to RabbitMQ.")
             break
         except AMQPConnectionError as e:
             print(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
