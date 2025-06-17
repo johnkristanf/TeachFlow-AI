@@ -3,6 +3,7 @@ services:
   app:
     build: .
     image: johnkristan01/teachflow:latest
+    restart: always
     env_file:
       - .env
 
@@ -16,6 +17,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - app-network
 
 
   rabbitmq:
@@ -27,11 +30,16 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+    networks:
+      - app-network
 
+
+networks:
+  app-network:
+    driver: bridge
