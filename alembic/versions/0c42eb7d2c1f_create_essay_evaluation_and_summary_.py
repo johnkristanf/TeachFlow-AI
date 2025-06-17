@@ -22,7 +22,7 @@ def upgrade() -> None:
     op.create_table(
         'essay_evaluations',
         sa.Column('id', sa.String(), primary_key=True, default=lambda: str(uuid.uuid4()), index=True),
-        sa.Column('essay_id', sa.dialects.postgresql.UUID(), sa.ForeignKey('essay.id'), nullable=False),
+        sa.Column('essay_id', sa.Integer(), sa.ForeignKey('essay.id'), nullable=False),
         sa.Column('criterion', sa.String(), nullable=True),
         sa.Column('matched_label', sa.String(), nullable=True),
         sa.Column('score', sa.Integer(), nullable=True),
@@ -35,7 +35,7 @@ def upgrade() -> None:
     op.create_table(
         'essay_summaries',
         sa.Column('id', sa.String(), primary_key=True, default=lambda: str(uuid.uuid4()), index=True),
-        sa.Column('essay_id', sa.dialects.postgresql.UUID(), sa.ForeignKey('essay.id'), nullable=False, unique=True),
+        sa.Column('essay_id', sa.Integer(), sa.ForeignKey('essay.id'), nullable=False),
         sa.Column('total_score', sa.Integer(), nullable=True),
         sa.Column('max_total_score', sa.Integer(), nullable=True),
         sa.Column('overall_feedback', sa.String(), nullable=True)
