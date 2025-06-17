@@ -18,7 +18,7 @@ jobs:
           docker-compose --version
           
           
-      - name: Create SSH Key File
+      - name: Create SSH Key File 
         run: |
           echo "${{ secrets.EC2_KEY }}" > private_key.pem
           chmod 600 private_key.pem
