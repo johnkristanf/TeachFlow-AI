@@ -2,6 +2,7 @@ import json
 import traceback
 import os
 import asyncio
+import logging
 
 from aio_pika.abc import AbstractRobustConnection
 from aio_pika.exceptions import AMQPConnectionError
@@ -45,7 +46,7 @@ async def process_message(message: IncomingMessage):
                 essay_service.grade_essay(essay_id, clean_essay, rubric_category, grade_level, grade_intensity, rubric_criteria)
                 
         except Exception as e: 
-            print(f"Error processing message for essay {essay_id}: {e}")
+            logging.critical(f"Error processing message for essay {essay_id}: {e}")
             traceback.print_exc() # Always print full traceback for debugging
 
             # Prepare common error details
@@ -62,7 +63,7 @@ async def process_message(message: IncomingMessage):
                     print(f"Attempting retry {retries + 1}/{MAX_RETRIES} for essay {essay_id}.")
                     await retry_message_queue(message, retries)
                 else:
-                    print(f"💥 Max retries ({MAX_RETRIES}) exhausted for essay {essay_id}. Logging as failed.")
+                    logging.critical(f"💥 Max retries ({MAX_RETRIES}) exhausted for essay {essay_id}. Logging as failed.")
                     failure_type = 'RETRY_EXHAUSTED'
                     error_message = f"Max retries ({MAX_RETRIES}) exhausted. Error: {e}"
                     essay_service.set_failed_grading(
@@ -73,7 +74,7 @@ async def process_message(message: IncomingMessage):
                     )
                     await message.reject(requeue=False) # Send to DLQ
             else:
-                print(f"❌ Caught a non-retryable error.")
+                logging.critical(f"❌ Caught a non-retryable error.")
                 failure_type = 'PERMANENT_ERROR'
                 error_message = f"Non-retryable error during grading: {e}"
 
@@ -88,18 +89,17 @@ async def process_message(message: IncomingMessage):
 
 async def start_rabbitmq_consumer():
     
-    
+    connection: AbstractRobustConnection = None
     RABBITMQ_URL = os.getenv("RABBITMQ_URL") 
     QUEUE_NAME = "grading_events"  
 
-    connection: AbstractRobustConnection = None
     for attempt in range(5):
         try:
             connection = await connect_robust(RABBITMQ_URL)
-            print("✅ Successfully connected to RabbitMQ.")
+            logging.info("✅ Successfully connected to RabbitMQ.")
             break
         except AMQPConnectionError as e:
-            print(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
+            logging.info(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
             await asyncio.sleep(5)
     else:
         raise RuntimeError("RabbitMQ is still not reachable after 5 attempts.")
@@ -124,6 +124,6 @@ async def start_rabbitmq_consumer():
 
     # Start consuming messages
     await queue.consume(process_message)
-    print(f"🚀 Waiting for messages in queue: {QUEUE_NAME}")
+    logging.info(f"🚀 Waiting for messages in queue: {QUEUE_NAME}")
 
     return connection
