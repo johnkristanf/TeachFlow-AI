@@ -19,8 +19,6 @@ jobs:
           docker-compose --version
 
 
-
-          
       - name: Create SSH Key File 
         run: |
           echo "${{ secrets.EC2_KEY }}" > private_key.pem
@@ -32,6 +30,14 @@ jobs:
       - name: Debug - List Files in Server Directory
         run: |
           ls -lah 
+
+      - name: Create .env file from GitHub Secrets
+        run: |
+          cat <<EOF > .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+          EOF
 
      
       - name: Build & Push Docker Image using Docker Compose
