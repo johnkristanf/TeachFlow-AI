@@ -99,7 +99,7 @@ async def start_rabbitmq_consumer():
             logging.info("✅ Successfully connected to RabbitMQ.")
             break
         except AMQPConnectionError as e:
-            logging.info(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
+            logging.warning(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
             await asyncio.sleep(5)
     else:
         raise RuntimeError("RabbitMQ is still not reachable after 5 attempts.")
