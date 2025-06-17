@@ -7,7 +7,11 @@ from fastapi import FastAPI
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(start_rabbitmq_consumer())
+    print("🐇 Initializing RabbitMQ Consumer...")
+    try:
+        asyncio.create_task(start_rabbitmq_consumer())
+    except Exception as e:
+        print(f"❌ Failed to start RabbitMQ consumer: {e}")
     yield
     
 app = FastAPI(lifespan=lifespan)

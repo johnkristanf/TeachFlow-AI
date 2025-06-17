@@ -3,20 +3,19 @@ import traceback
 import os
 import asyncio
 
-from aio_pika import connect_robust
+from aio_pika.abc import AbstractRobustConnection
 from aio_pika.exceptions import AMQPConnectionError
 from aio_pika import connect_robust, IncomingMessage
+
 from utils.essay import clean_essay_text
 from services.essay_grading import EssayGradingService
 from retry import retry_message_queue
 from exceptions import RETRYABLE_EXCEPTIONS
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL") 
-QUEUE_NAME = "grading_events"  
-MAX_RETRIES = 3
 
 
 essay_service = EssayGradingService()
+MAX_RETRIES = 3
     
 async def process_message(message: IncomingMessage):
     async with message.process(ignore_processed=True):
@@ -88,6 +87,12 @@ async def process_message(message: IncomingMessage):
                 await message.reject(requeue=False) # Send to DLQ
 
 async def start_rabbitmq_consumer():
+    
+    
+    RABBITMQ_URL = os.getenv("RABBITMQ_URL") 
+    QUEUE_NAME = "grading_events"  
+
+    connection: AbstractRobustConnection = None
     for attempt in range(5):
         try:
             connection = await connect_robust(RABBITMQ_URL)
