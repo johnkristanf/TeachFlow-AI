@@ -6,18 +6,12 @@ from consumer import start_rabbitmq_consumer
 from fastapi import FastAPI
 
 
-async def run_rabbitmq_consumer():
-    try:
-        await start_rabbitmq_consumer()
-    except Exception as e:
-        print(f"❌ Background task failed: {e}")
-        traceback.print_exc()
         
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🐇 Initializing RabbitMQ Consumer...")
     try:
-        asyncio.create_task(run_rabbitmq_consumer())
+        await start_rabbitmq_consumer()  # Wait until it's connected and consuming
     except Exception as e:
         print(f"❌ Failed to start RabbitMQ consumer: {e}")
     yield
