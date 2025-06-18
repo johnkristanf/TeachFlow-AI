@@ -46,7 +46,7 @@ async def process_message(message: IncomingMessage):
                 essay_service.grade_essay(essay_id, clean_essay, rubric_category, grade_level, grade_intensity, rubric_criteria)
                 
         except Exception as e: 
-            logging.critical(f"Error processing message for essay {essay_id}: {e}")
+            logging.critical(f"Error occured in message consumption: {e}")
             traceback.print_exc() # Always print full traceback for debugging
 
             # Prepare common error details
@@ -96,10 +96,14 @@ async def start_rabbitmq_consumer():
     for attempt in range(5):
         try:
             connection = await connect_robust(RABBITMQ_URL)
-            logging.info("✅ Successfully connected to RabbitMQ.")
-            break
+            if not connection.is_closed:
+                logging.info("✅ Successfully connected to RabbitMQ.")
+                break
+            else:
+                logging.warning("⚠️ RabbitMQ connection is closed.")
+                
         except AMQPConnectionError as e:
-            logging.warning(f"[Attempt {attempt+1}] RabbitMQ not ready: {e}")
+            logging.warning(f"[Attempt {attempt + 1}] RabbitMQ not ready: {e}")
             await asyncio.sleep(5)
     else:
         raise RuntimeError("RabbitMQ is still not reachable after 5 attempts.")
