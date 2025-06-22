@@ -43,7 +43,7 @@ async def process_message(message: IncomingMessage):
                 
                 clean_essay = clean_essay_text(essay_text)
                 print(f'clean_essay: {clean_essay}')
-                essay_service.grade_essay(essay_id, clean_essay, rubric_category, grade_level, grade_intensity, rubric_criteria)
+                await essay_service.grade_essay_service(essay_id, clean_essay, rubric_category, grade_level, grade_intensity, rubric_criteria)
                 
         except Exception as e: 
             logging.critical(f"Error occured in message consumption: {e}")
@@ -66,7 +66,7 @@ async def process_message(message: IncomingMessage):
                     logging.critical(f"💥 Max retries ({MAX_RETRIES}) exhausted for essay {essay_id}. Logging as failed.")
                     failure_type = 'RETRY_EXHAUSTED'
                     error_message = f"Max retries ({MAX_RETRIES}) exhausted. Error: {e}"
-                    essay_service.set_failed_grading(
+                    essay_service.set_failed_grading_service(
                         essay_id,
                         failure_type,
                         error_message,
@@ -78,7 +78,7 @@ async def process_message(message: IncomingMessage):
                 failure_type = 'PERMANENT_ERROR'
                 error_message = f"Non-retryable error during grading: {e}"
 
-                essay_service.set_failed_grading(
+                essay_service.set_failed_grading_service(
                     essay_id,
                     failure_type,
                     error_message,
@@ -103,7 +103,7 @@ async def start_rabbitmq_consumer():
                 logging.warning("⚠️ RabbitMQ connection is closed.")
                 
         except AMQPConnectionError as e:
-            logging.warning(f"[Attempt {attempt + 1}] RabbitMQ not ready: {e}")
+            logging.warning(f"[Attempt {attempt + 1}] RabbitMQ connection failed.")
             await asyncio.sleep(5)
     else:
         raise RuntimeError("RabbitMQ is still not reachable after 5 attempts.")
