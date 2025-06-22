@@ -11,7 +11,6 @@ async def lifespan(app: FastAPI):
     logging.info("🐇 Initializing RabbitMQ Consumer...")
     try:
         consumer_connection = await start_rabbitmq_consumer()
-        logging.info("📡 RabbitMQ consumer started successfully.")
         app.state.rabbitmq_connection = consumer_connection
     except Exception as e:
         logging.critical(f"❌ CRITICAL: Failed to start RabbitMQ consumer: {e}", exc_info=True)
