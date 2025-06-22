@@ -18,11 +18,11 @@ class EssayGradingRepository:
         
     def save_evaluations(self, essay_id: str, evaluations: list[dict]):
         try:
-            # 1. Delete existing evaluations for this essay_id
+            # 1. Delete existing evaluations for this essay_id (DUE TO REGRADE FUNCTIONALITY)
             print(f"Deleting existing evaluations for essay_id: {essay_id}")
             self.db.query(EssayEvaluations).filter(EssayEvaluations.essay_id == essay_id).delete()
-            self.db.flush() # Flush to ensure deletes are processed before inserts
-
+            self.db.flush() 
+            
             # 2. Insert new evaluations
             print(f"Inserting new evaluations for essay_id: {essay_id}")
             for eval_data in evaluations:
@@ -39,11 +39,11 @@ class EssayGradingRepository:
                 )
                 self.db.add(evaluation)
             self.db.commit()
-            print(f"Successfully saved new evaluations for essay {essay_id}.")
+            print(f"Successfully saved new evaluations for essay ID: {essay_id}.")
 
         except SQLAlchemyError as e:
             self.db.rollback()
-            print(f"SQLAlchemyError in save_evaluations for essay {essay_id}: {e}")
+            print(f"SQLAlchemyError in save_evaluations for essay ID: {essay_id}: {e}")
             raise # Re-raise the exception after rollback
         
     def save_summary(self, essay_id: str, total_score: int, max_total_score: int, overall_feedback: str):
