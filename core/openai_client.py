@@ -1,6 +1,6 @@
 import os 
 import json
-from openai import OpenAI, OpenAIError, APIConnectionError, Timeout, RateLimitError, AuthenticationError
+from openai import AsyncOpenAI, OpenAIError, APIConnectionError, Timeout, RateLimitError, AuthenticationError
 from prompts.essay_grading import LLMPrompts
 from exceptions import MalformedLLMResponseError
 
@@ -11,12 +11,12 @@ class OpenAIClient:
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set")
         
-        self.client = OpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         self.prompts = LLMPrompts()
         
         
-    def grade_essay(
+    async def grade_essay(
         self, 
         essay: str, 
         rubric_category, 
@@ -27,7 +27,7 @@ class OpenAIClient:
     ) -> str:
         
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     self.prompts.system_essay_grading(rubric_category, grade_level, grade_intensity,), 
